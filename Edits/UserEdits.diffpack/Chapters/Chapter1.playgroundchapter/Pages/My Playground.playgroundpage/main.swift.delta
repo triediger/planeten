@@ -1,0 +1,533 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Diff</key>
+	<array>
+		<dict>
+			<key>ModifiedContent</key>
+			<string>import Foundation
+
+extension Double {
+    var radian: Double {
+        return self * Double.pi/180
+    }
+    
+    var degree: Double {
+        return self * 180/Double.pi
+    }
+    
+    func normalizeAngle() -&gt; Double {
+        //print("normalizing \(self)") 
+        if (0..&lt;360).contains(self) {
+            return self
+        } else if self &lt; 0 {
+            return (self+360).normalizeAngle()
+        } else {
+            return (self-360).normalizeAngle()
+        }
+    }
+    
+    func normalizeTime() -&gt; Double {
+        if (0..&lt;24).contains(self) {
+            return self
+        } else if self &lt; 0 {
+            return (self+24).normalizeTime()
+        } else {
+            return (self-24).normalizeTime()
+        }
+    }
+}
+
+/*
+ let a = 360.radian
+ let b = 180.radian
+ 
+ let c = Double.pi.degree
+ let d = (Double.pi * 2).degree
+ */
+
+//
+// Datum und Zeit 
+let epochComponents = DateComponents(timeZone: TimeZone.init(abbreviation: "UTC")!, 
+                                     year: 2022, 
+                                     month: 06, 
+                                     day: 26, 
+                                     hour: 22, 
+                                     minute: 0, 
+                                     second: 0, 
+                                     nanosecond: 0)
+let epoch = Calendar.current.date(from: epochComponents)!
+
+
+
+func time(for date: Date) -&gt; Double {
+    let cal = Calendar(identifier: .gregorian)
+    let utcTZ = TimeZone(abbreviation: "UTC")!
+    
+    let components = cal.dateComponents(in: utcTZ, from: date)
+    
+    let y = components.year!
+    let m = components.month!
+    let D = components.day!
+    let day = 367*y - 7*(y+(m+9)/12)/4 + 275*m/9 + D - 730530
+    
+    let ut = Double(components.hour!) + Double(components.minute!*60 + components.second!)/3600
+    return Double(day) + ut/24
+}
+
+let test = time(for: epoch)
+let now = time(for: Date())
+
+//
+// Neigung der Erdachse 
+let ecl = 23.4393 - 3.563E-7 * test 
+
+//
+// Daten der Planeten 
+enum OrbitalType {
+    case sun
+    case moon
+    case planet
+}
+
+struct OrbitalElements {
+    let type: OrbitalType
+    let longitudeOfTheAscendingNode: Double
+    let inclinationToTheEcliptic: Double
+    let argumentOfPerihelion: Double
+    let meanDistanceFromSun: Double
+    let eccentricity: Double
+    let meanAnomaly: Double
+}
+
+let sun = OrbitalElements(type: .sun,
+                          longitudeOfTheAscendingNode: 0.0,
+                          inclinationToTheEcliptic: 0.0,
+                          argumentOfPerihelion: 282.9404 + 4.70935E-5 * test,
+                          meanDistanceFromSun: 1.0, 
+                          eccentricity: 0.016709 - 1.151E-9 * test,
+                          meanAnomaly: (356.0470 + 0.9856002585 * test).normalizeAngle() )
+
+let moon = OrbitalElements(type: .moon,
+                           longitudeOfTheAscendingNode: 125.1228 - 0.0529538083 * test,
+                           inclinationToTheEcliptic: 5.1454,
+                           argumentOfPerihelion: (318.0634 + 0.1643573223 * test).normalizeAngle(),
+                           meanDistanceFromSun: 60.2666, 
+                           eccentricity: 0.054900,
+                           meanAnomaly: (115.3654 + 13.0649929509 * test).normalizeAngle() ) 
+
+let mercury = OrbitalElements(type: .planet,
+                              longitudeOfTheAscendingNode: 48.3313 + 3.24587E-5 * test,
+                              inclinationToTheEcliptic: 7.0047 + 5.00E-8 * test,
+                              argumentOfPerihelion: (29.1241 + 1.01444E-5 * test).normalizeAngle(),
+                              meanDistanceFromSun: 0.387098, 
+                              eccentricity: 0.205635 + 5.59E-10 * test,
+                              meanAnomaly: (168.6562 + 4.0923344368 * test).normalizeAngle() ) 
+
+let venus = OrbitalElements(type: .planet,
+                            longitudeOfTheAscendingNode: 76.6799 + 2.46590E-5 * test,
+                            inclinationToTheEcliptic: 3.3946 + 2.75E-8 * test,
+                            argumentOfPerihelion: (54.8910 + 1.38374E-5 * test).normalizeAngle(),
+                            meanDistanceFromSun: 0.723330, 
+                            eccentricity: 0.006773 - 1.302E-9 * test,
+                            meanAnomaly: (48.0052 + 1.6021302244 * test).normalizeAngle() ) 
+ 
+let mars = OrbitalElements(type: .planet,
+                           longitudeOfTheAscendingNode: 49.5574 + 2.11081E-5 * test,
+                           inclinationToTheEcliptic: 1.8497 - 1.78E-8 * test,
+                           argumentOfPerihelion: (286.5016 + 2.92961E-5 * test).normalizeAngle(),
+                           meanDistanceFromSun: 1.523688, 
+                           eccentricity: 0.093405 + 2.516E-9 * test,
+                           meanAnomaly: (18.6021 + 0.5240207766 * test).normalizeAngle() ) 
+ 
+let jupiter = OrbitalElements(type: .planet,
+                              longitudeOfTheAscendingNode: 100.4542 + 2.76854E-5 * test,
+                              inclinationToTheEcliptic: 1.3030 - 1.557E-7 * test,
+                              argumentOfPerihelion: (273.8777 + 1.64505E-5 * test).normalizeAngle(),
+                              meanDistanceFromSun: 5.20256, 
+                              eccentricity: 0.048498 + 4.469E-9 * test,
+                              meanAnomaly: (19.8950 + 0.0830853001 * test).normalizeAngle() ) 
+ 
+let saturn = OrbitalElements(type: .planet,
+                             longitudeOfTheAscendingNode: 113.6634 + 2.38980E-5 * test,
+                             inclinationToTheEcliptic: 2.4886 - 1.081E-7 * test,
+                             argumentOfPerihelion: (339.3939 + 2.97661E-5 * test).normalizeAngle(),
+                             meanDistanceFromSun: 9.55475, 
+                             eccentricity: 0.055546 - 9.499E-9 * test,
+                             meanAnomaly: (316.9670 + 0.0334442282 * test).normalizeAngle() ) 
+ 
+let uranus = OrbitalElements(type: .planet,
+                             longitudeOfTheAscendingNode: 74.0005 + 1.3978E-5 * test,
+                             inclinationToTheEcliptic: 0.7733 + 1.9E-8 * test,
+                             argumentOfPerihelion: (96.6612 + 3.0565E-5 * test).normalizeAngle(),
+                             meanDistanceFromSun: 19.18171 - 1.55E-8 * test, 
+                             eccentricity: 0.047318 + 7.45E-9 * test,
+                             meanAnomaly: (142.5905 + 0.011725806 * test).normalizeAngle() ) 
+ 
+let neptune = OrbitalElements(type: .planet,
+                              longitudeOfTheAscendingNode: 131.7806 + 3.0173E-5 * test,
+                              inclinationToTheEcliptic: 1.7700 - 2.55E-7 * test,
+                              argumentOfPerihelion: (272.8461 - 6.027E-6 * test).normalizeAngle(),
+                              meanDistanceFromSun: 30.05826 + 3.313E-8 * test, 
+                              eccentricity: 0.008606 + 2.15E-9 * test,
+                              meanAnomaly: (260.2471 + 0.005995147 * test).normalizeAngle() ) 
+ 
+//
+//Rechnung Beginn
+struct CalculationIntermediateResult {
+    let TrueAnomaly: Double
+    let sunsDistance: Double
+    let orbitalElements: OrbitalElements
+}
+
+func calculationStep1(planet: OrbitalElements) -&gt; CalculationIntermediateResult {
+    let eccentricAnomaly = 
+        planet.meanAnomaly + planet.eccentricity.degree * sin(planet.meanAnomaly.radian) * (1.0 + planet.eccentricity * cos(planet.meanAnomaly.radian))
+    
+    let xTrueAnomaly = (cos(eccentricAnomaly.radian) - planet.eccentricity) * planet.meanDistanceFromSun
+    let yTrueAnomaly = sqrt(1.0 - planet.eccentricity*planet.eccentricity) * sin(eccentricAnomaly.radian) * planet.meanDistanceFromSun
+    
+    let TrueAnomaly = ( atan2( yTrueAnomaly, xTrueAnomaly ) ).degree.normalizeAngle()
+    let sunsDistance = sqrt( xTrueAnomaly*xTrueAnomaly + yTrueAnomaly*yTrueAnomaly )
+    
+    return CalculationIntermediateResult(TrueAnomaly: TrueAnomaly, sunsDistance: sunsDistance, orbitalElements: planet)
+}
+
+let intermediateResults = [
+    "Sun": calculationStep1(planet: sun),
+    "Moon": calculationStep1(planet: moon),
+    "Mercury": calculationStep1(planet: mercury),
+    "Venus": calculationStep1(planet: venus),
+    "Mars": calculationStep1(planet: mars),
+    "Jupiter": calculationStep1(planet: jupiter),
+    "Saturn": calculationStep1(planet: saturn),
+    "Uranus": calculationStep1(planet: uranus),
+    "Neptune": calculationStep1(planet: neptune)
+        // missing Pluto ;)
+]
+
+//
+//Rechnung Koordinaten der Sonne 
+struct CalculationResult {
+    let xs, ys, zs: Double
+    let lonSun: Double
+    let rightAscension: Double
+    let declination: Double
+    let orbitalElements: OrbitalElements
+    
+    init(rightAscension: Double, declination: Double, orbitalElements: OrbitalElements) {
+        self.init(xs: Double.nan, ys: Double.nan, zs: Double.nan, lonSun: Double.nan, rightAscension: rightAscension, declination: declination, orbitalElements: orbitalElements)
+    }
+    
+    init(xs: Double, ys: Double, zs: Double, lonSun: Double, rightAscension: Double, declination: Double, orbitalElements: OrbitalElements) {
+        self.xs = xs
+        self.ys = ys
+        self.zs = zs
+        self.lonSun = lonSun
+        self.rightAscension = rightAscension    
+        self.declination = declination
+        self.orbitalElements = orbitalElements
+    }
+}
+
+func calculationForSun(sun: CalculationIntermediateResult) -&gt; CalculationResult {
+    let lonSun = ( sun.TrueAnomaly + sun.orbitalElements.argumentOfPerihelion ).normalizeAngle() 
+    
+    //ecliptic rectangular coordinates
+    let xs = sun.sunsDistance * cos(lonSun.radian)
+    let ys = sun.sunsDistance * sin(lonSun.radian)
+    let zs = 0.0
+    
+    //equatorial coordinates 
+    let xe = xs 
+    let ye = ys * cos(ecl.radian)
+    let ze = ys * sin(ecl.radian)
+    
+    let rightAscension = ( atan2( ye, xe ) ).degree
+    let declination = ( atan2( ze, sqrt( xe*xe + ye*ye ) ) ).degree
+    
+    return CalculationResult(xs: xs, ys: ys, zs: zs, lonSun: lonSun, rightAscension: rightAscension, declination: declination, orbitalElements: sun.orbitalElements)
+}
+
+let resultSun = calculationForSun(sun: intermediateResults["Sun"]!)
+/*print("Sun:")
+print(resultSun.declination, resultSun.rightAscension)*/
+
+let xSun = resultSun.xs
+let ySun = resultSun.ys
+let zSun = resultSun.zs
+let lonSun = resultSun.lonSun
+
+//
+//Rechnung Koordinaten des Mondes
+ func calculationForMoon(_ intermediateResults: CalculationIntermediateResult) -&gt; CalculationResult {
+    let elements = intermediateResults.orbitalElements
+    
+    //ecliptic coordinates (geocentric) 
+    let xEclipt = intermediateResults.sunsDistance *
+        ( cos(elements.longitudeOfTheAscendingNode.radian) * cos(intermediateResults.TrueAnomaly.radian+elements.argumentOfPerihelion.radian) - sin(elements.longitudeOfTheAscendingNode.radian) * sin(intermediateResults.TrueAnomaly.radian+elements.argumentOfPerihelion.radian) * cos(elements.inclinationToTheEcliptic.radian))
+    let yEclipt = intermediateResults.sunsDistance *
+        ( sin(elements.longitudeOfTheAscendingNode.radian) * cos(intermediateResults.TrueAnomaly.radian+elements.argumentOfPerihelion.radian) + cos(elements.longitudeOfTheAscendingNode.radian) * sin(intermediateResults.TrueAnomaly.radian+elements.argumentOfPerihelion.radian) * cos(elements.inclinationToTheEcliptic.radian))
+    let zEclipt = intermediateResults.sunsDistance * sin(intermediateResults.TrueAnomaly.radian+elements.argumentOfPerihelion.radian) * sin(elements.inclinationToTheEcliptic.radian)
+ 
+    let longitude = ( atan2( yEclipt, xEclipt ).degree ).normalizeAngle()
+    let latitude = atan2( zEclipt, sqrt( xEclipt*xEclipt + yEclipt*yEclipt ) ).degree
+    let distance = sqrt(xEclipt*xEclipt + yEclipt*yEclipt + zEclipt*zEclipt)
+ 
+    //rectangular ecliptic coordinates 
+    let xrEclipt = cos(longitude.radian) * cos(latitude.radian)
+    let yrEclipt = sin(longitude.radian) * cos(latitude.radian)
+    let zrEclipt = sin(latitude.radian)
+ 
+    //rectangular equatorial coordinates 
+    let xEquat = xrEclipt 
+    let yEquat = yrEclipt * cos(ecl.radian) - zrEclipt * sin(ecl.radian)
+    let zEquat = yrEclipt * sin(ecl.radian) + zrEclipt * cos(ecl.radian)
+ 
+    let rightAscension = ( ( atan2( yEquat, xEquat ) ).degree ).normalizeAngle()
+    let declination = ( atan2( zEquat, sqrt( xEquat*xEquat + yEquat*yEquat) ) ).degree
+ 
+    return CalculationResult(rightAscension: rightAscension, declination: declination, orbitalElements: intermediateResults.orbitalElements)
+ }
+ 
+let resultMoon = calculationForMoon(intermediateResults["Moon"]!)
+/*print("Moon:")
+print(resultMoon.declination, resultMoon.rightAscension)*/
+
+//
+//Rechnung Koordinaten der Planeten
+func calculation(with planetB: CalculationIntermediateResult) -&gt; CalculationResult {
+    //ecliptic coordinates (heliocentric) 
+    let planet = planetB.orbitalElements
+    let xEclipt = planetB.sunsDistance *
+        ( cos(planet.longitudeOfTheAscendingNode.radian) * cos(planetB.TrueAnomaly.radian+planet.argumentOfPerihelion.radian) - sin(planet.longitudeOfTheAscendingNode.radian) * sin(planetB.TrueAnomaly.radian+planet.argumentOfPerihelion.radian) * cos(planet.inclinationToTheEcliptic.radian))
+    let yEclipt = planetB.sunsDistance *
+        ( sin(planet.longitudeOfTheAscendingNode.radian) * cos(planetB.TrueAnomaly.radian+planet.argumentOfPerihelion.radian) + cos(planet.longitudeOfTheAscendingNode.radian) * sin(planetB.TrueAnomaly.radian+planet.argumentOfPerihelion.radian) * cos(planet.inclinationToTheEcliptic.radian))
+    let zEclipt = planetB.sunsDistance * sin(planetB.TrueAnomaly.radian+planet.argumentOfPerihelion.radian) * sin(planet.inclinationToTheEcliptic.radian)
+    
+    let longitude = ( atan2( yEclipt, xEclipt ).degree ).normalizeAngle()
+    let latitude = atan2( zEclipt, sqrt( xEclipt*xEclipt + yEclipt*yEclipt ) ).degree
+    let distance = sqrt(xEclipt*xEclipt + yEclipt*yEclipt + zEclipt*zEclipt)
+    
+    //rectangular ecliptic coordinates 
+    let xrEclipt = planetB.sunsDistance * cos(longitude.radian) * cos(latitude.radian)
+    let yrEclipt = planetB.sunsDistance * sin(longitude.radian) * cos(latitude.radian)
+    let zrEclipt = planetB.sunsDistance * sin(latitude.radian)
+    
+    //rectangular geocentric coordinates 
+    let xGeo = xrEclipt + xSun
+    let yGeo = yrEclipt + ySun 
+    let zGeo = zrEclipt + zSun 
+    
+    //rectangular equatorial coordinates 
+    let xEquat = xGeo 
+    let yEquat = yGeo * cos(ecl.radian) - zGeo * sin(ecl.radian)
+    let zEquat = yGeo * sin(ecl.radian) + zGeo * cos(ecl.radian)
+    
+    let rightAscension = ( atan2( yEquat, xEquat ) ).degree.normalizeAngle()
+    let declination = ( atan2( zEquat, sqrt( xEquat*xEquat + yEquat*yEquat) ) ).degree
+    
+    return CalculationResult(rightAscension: rightAscension, declination: declination, orbitalElements: planetB.orbitalElements)
+}
+
+let results = intermediateResults.mapValues { intermediateResult -&gt; CalculationResult in
+    switch intermediateResult.orbitalElements.type {
+    case .sun:
+        return calculationForSun(sun: intermediateResult)
+    case .moon:
+        return calculationForMoon(intermediateResult)
+    case .planet:
+        return calculation(with: intermediateResult)
+    }
+    
+}
+
+for (name, result) in results {
+    print("\(name)\ndeclination: \(result.declination) - ascension: \(result.rightAscension)")
+}
+
+//
+// Altitude und Azimuth 
+struct ViewerPosition {
+    let UT: Double 
+    let terrestialLongitude: Double //Längengrad 
+    let terrestialLatitude: Double //Breitengrad 
+}
+
+func calculationFor(viewer position: ViewerPosition, result: CalculationResult) -&gt; (azimuth: Double, altitude: Double) {
+
+    let GMST0 = ( (lonSun.normalizeAngle())/15 )+12
+
+    let sidTime = ( GMST0 + position.UT + position.terrestialLongitude/15 ).normalizeTime() //Sternzeit
+
+    let hourAngle = sidTime*15 - result.rightAscension
+
+    let x = cos(hourAngle.radian) * cos(result.declination.radian)
+    let y = sin(hourAngle.radian) * cos(result.declination.radian) 
+    let z = sin(result.declination.radian)
+
+    let xhor = x * sin(position.terrestialLatitude.radian) - z * cos(position.terrestialLatitude.radian)
+    let yhor = y 
+    let zhor = x * cos(position.terrestialLatitude.radian) + z * sin(position.terrestialLatitude.radian)
+
+    let azimuth = ( ( atan2(yhor, xhor) ).degree + 180 ).normalizeAngle()
+    let altitude = ( asin(zhor) ).degree
+    
+    return ( azimuth, altitude )
+} 
+
+let viewer = ViewerPosition(UT: Double(epochComponents.hour!), terrestialLongitude: 10, terrestialLatitude: 52)
+let resultFromViewerPerspective = results.mapValues { result in 
+    calculationFor(viewer: viewer, result: result)
+}
+
+print("===================================\nFrom viewer perspective\n===================================")
+for (name, viewerResult) in resultFromViewerPerspective {
+    print("\(name)\nazimuth: \(viewerResult.0) - altitude: \(viewerResult.1)")
+    positionsBeschreibungAltitude(viewerResultAltitude: viewerResult.altitude)
+    positionsBeschriebungAzimuth(viewerResultAzimuth: viewerResult.azimuth)
+    print("------------------------------")
+}
+
+
+
+//
+//Ausgaben 
+func positionsBeschreibungAltitude( viewerResultAltitude: Double ) -&gt; Bool {
+    switch viewerResultAltitude {
+    case ...0:
+        print("nicht sichtbar")
+        return false
+    case 90.1...:
+        print("nicht sichtbar")
+        return false
+    case 0...90:
+        print("sichtbar")
+        return true
+    case 90:
+        print("im Zenith")
+        return true
+    default:
+        print("kann nicht sein")
+        return false
+    }
+}
+
+//if (positionsBeschreibungAltitude == true ) {}
+    
+
+
+func positionsBeschriebungAzimuth(viewerResultAzimuth: Double) {
+    switch viewerResultAzimuth {
+    case 0...30:
+        print("Norden")
+    case 30...60:
+        print("Nordosten")
+    case 60...120:
+        print("Osten")
+    case 120...150:
+        print("Südosten")
+    case 150...210:
+        print("Süden")
+    case 210...240:
+        print("Südwesten")
+    case 240...300:
+        print("Westen")
+    case 300...330:
+        print("Nordwesten")
+    case 330...360:
+        print("Norden")
+    default:
+        print("kann nicht sein")
+    }
+}
+
+/*let resultSunFinal = calculationFor(viewer: viewer, result: resultSun)
+ print("SunFinal:")
+ print(resultSunFinal)
+ 
+ switch resultSunFinal.altitude {
+ case ...(-18):
+ print("Nacht")
+ case (-18)..&lt;0:
+ print("Dämmerung")
+ case 0...90:
+ print("Tag")
+ default:
+ print("kann nicht sein")
+ }*/
+
+//
+//Sonderberechnungen 
+var resultForViewerPerspective: [String:(Double, Double)] = [:]
+
+for month in 1...12 {
+    let noonComponents = DateComponents(timeZone: TimeZone(abbreviation: "UTC"), 
+                                        year: 2022, 
+                                        month: month, 
+                                        day: 1, 
+                                        hour: 12, 
+                                        minute: 0, 
+                                        second: 0, 
+                                        nanosecond: 0)
+    let noon = time(for: Calendar.current.date(from: noonComponents)!)
+    let sunAtNoon = OrbitalElements(type: .sun,
+                              longitudeOfTheAscendingNode: 0.0,
+                              inclinationToTheEcliptic: 0.0,
+                              argumentOfPerihelion: 282.9404 + 4.70935E-5 * noon,
+                              meanDistanceFromSun: 1.0, 
+                              eccentricity: 0.016709 - 1.151E-9 * noon,
+                              meanAnomaly: (356.0470 + 0.9856002585 * noon).normalizeAngle() )
+    
+    let intermediate = calculationStep1(planet: sunAtNoon)
+    let result = calculationForSun(sun: intermediate)
+    let viewerResult = calculationFor(viewer: viewer, result: result)
+    let alt = viewerResult.altitude
+} 
+
+
+
+
+
+
+
+//let v = ( atan2(-59.72377*(Double.pi/180), -10.68095)*(Double.pi/180) ) / (Double.pi/180)
+
+
+
+/*
+let g =  (356.0470 + 0.9856002585 * test)
+let gg = g.truncatingRemainder(dividingBy: 360)
+
+let u = g%360 
+
+extension Double {
+    static func % (left: Double, right: Int) -&gt; Double {
+        let integerQuotient = Int(left) / right
+        return left - Double(integerQuotient * right)
+    }
+}
+
+let testRest1 = 365.7%360
+let testRest2 = 359.0%360
+let testRest3 = 360.0%360
+let testRest4 = 361.0%360
+let testRest5 = 1981.7%360
+let testRest6 = -3136.017.remainder(dividingBy: 360)
+ */
+
+
+</string>
+			<key>ModifiedRange</key>
+			<string>{0, 20451}</string>
+			<key>OriginalContent</key>
+			<string></string>
+			<key>OriginalRange</key>
+			<string>{0, 0}</string>
+		</dict>
+	</array>
+	<key>File</key>
+	<string>Chapters/Chapter1.playgroundchapter/Pages/My Playground.playgroundpage/main.swift</string>
+</dict>
+</plist>
